@@ -1,6 +1,6 @@
 # Task-Tools
 
-![example workflow](https://github.com/goromal/task-tools/actions/workflows/test.yml/badge.svg)
+![workflow](https://github.com/goromal/task-tools/actions/workflows/test.yml/badge.svg)
 
 ## Commands
 
