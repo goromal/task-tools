@@ -2,7 +2,7 @@ import logging
 import sys
 from datetime import datetime, timedelta
 
-from task_tools.auth import getTaskService
+from easy_google_auth.auth import getGoogleService
 from task_tools.defaults import TaskToolsDefaults as TTD
 
 class Task(object):
@@ -22,7 +22,9 @@ class TaskManager(object):
         self.enable_logging = TTD.getKwargsOrDefault("enable_logging", **kwargs)
         if self.enable_logging:
             logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
-        self.service = getTaskService(
+        self.service = getGoogleService(
+            "tasks",
+            "v1",
             TTD.getKwargsOrDefault("task_secrets_file", **kwargs),
             TTD.getKwargsOrDefault("task_refresh_token", **kwargs),
             TTD.getKwargsOrDefault("task_scope", **kwargs)
