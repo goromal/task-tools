@@ -27,8 +27,11 @@ class TaskManager(object):
             "v1",
             TTD.getKwargsOrDefault("task_secrets_file", **kwargs),
             TTD.getKwargsOrDefault("task_refresh_token", **kwargs),
-            TTD.getKwargsOrDefault("task_scope", **kwargs)
+            TTD.getKwargsOrDefault("task_scope", **kwargs),
+            headless=True
         )
+        if self.service is None:
+            raise Exception(f"Expired credentials at {TTD.getKwargsOrDefault('task_refresh_token', **kwargs)}")
 
     def getTasks(self, date=None):
         if date is None:

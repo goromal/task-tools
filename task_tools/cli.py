@@ -32,7 +32,11 @@ from task_tools.manage import TaskManager
 )
 def cli(ctx: click.Context, task_secrets_file, task_refresh_token, enable_logging):
     """Manage Google Tasks."""
-    ctx.obj = TaskManager(task_secrets_file=task_secrets_file, task_refresh_token=task_refresh_token, enable_logging=enable_logging)
+    try:
+        ctx.obj = TaskManager(task_secrets_file=task_secrets_file, task_refresh_token=task_refresh_token, enable_logging=enable_logging)
+    except Exception as e:
+        print(f"Program error: {e}")
+        exit(1)
 
 @cli.command()
 @click.pass_context
