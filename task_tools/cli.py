@@ -41,6 +41,10 @@ def cli(ctx: click.Context, task_secrets_file, task_refresh_token, enable_loggin
 
 @cli.command()
 @click.pass_context
+@click.argument(
+    "filter",
+    type=str,
+)
 @click.option(
     "--date",
     "date",
@@ -49,8 +53,8 @@ def cli(ctx: click.Context, task_secrets_file, task_refresh_token, enable_loggin
     show_default=True,
     help="Maximum due date for filtering tasks.",
 )
-def list(ctx: click.Context, date):
-    """List pending tasks."""
+def list(ctx: click.Context, filter, date):
+    """List pending tasks according to a filter ∈ [all, p0, p1, p2, late]."""
     tasks = ctx.obj.getTasks(date)
     for task in tasks:
         print(task)
