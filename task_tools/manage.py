@@ -18,25 +18,25 @@ class Task(object):
         self.due = data["due"].split("T")[0]
         due_date = googleDateToDateTime(data["due"])
         if self.name[:3] == "P0:":
-            self.timed = True
+            self.timing = 0
             self.autogen = ("[T]" in self.name)
             self.days_late = max((datetime.today() - due_date).days, 0)
         elif self.name[:3] == "P1:":
-            self.timed = True
+            self.timing = 1
             self.autogen = ("[T]" in self.name)
             self.days_late = max((datetime.today() - due_date).days - 5, 0)
         elif self.name[:3] == "P2:":
-            self.timed = True
+            self.timing = 2
             self.autogen = ("[T]" in self.name)
             self.days_late = max((datetime.today() - due_date).days - 27, 0)
         else:
-            self.timed = False
+            self.timing = -1
             self.autogen = False
             self.days_late = 0
         self.notes = data["notes"].replace("\n", "\n    ") if "notes" in data else None
     
     def __repr__(self):
-        if self.timed and self.days_late > 0:
+        if self.timing >= 0 and self.days_late > 0:
             timed_info = f"[LATE {self.days_late} DAYS] "
         else:
             timed_info = ""
