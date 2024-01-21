@@ -40,11 +40,7 @@ class Task(object):
             timed_info = f"[LATE {self.days_late} DAYS] "
         else:
             timed_info = ""
-        base = f"(Due {self.due}) {timed_info}'{self.name}'"
-        base += f"\n< {self.id} >"
-        if self.notes is not None:
-            base += f"\n    {self.notes}"
-        return base
+        return f"(Due {self.due}) {timed_info}'{self.name}' < {self.id} >"
 
 class TaskManager(object):
     def __init__(self, **kwargs):
