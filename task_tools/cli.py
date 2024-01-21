@@ -24,6 +24,14 @@ from task_tools.manage import TaskManager
     help="Google Tasks refresh file (if it exists).",
 )
 @click.option(
+    "--task-list-id",
+    "task_list_id",
+    type=str,
+    default=TTD.TASK_LIST_ID,
+    show_default=True,
+    help="UUID of the Task List to query.",
+)
+@click.option(
     "--enable-logging",
     "enable_logging",
     type=bool,
@@ -31,10 +39,10 @@ from task_tools.manage import TaskManager
     show_default=True,
     help="Whether to enable logging.",
 )
-def cli(ctx: click.Context, task_secrets_file, task_refresh_token, enable_logging):
+def cli(ctx: click.Context, task_secrets_file, task_refresh_token, task_list_id, enable_logging):
     """Manage Google Tasks."""
     try:
-        ctx.obj = TaskManager(task_secrets_file=task_secrets_file, task_refresh_token=task_refresh_token, enable_logging=enable_logging)
+        ctx.obj = TaskManager(task_secrets_file=task_secrets_file, task_refresh_token=task_refresh_token, task_list_id=task_list_id, enable_logging=enable_logging)
     except Exception as e:
         print(f"Program error: {e}")
         exit(1)
@@ -53,7 +61,13 @@ def cli(ctx: click.Context, task_secrets_file, task_refresh_token, enable_loggin
     show_default=True,
     help="Maximum due date for filtering tasks.",
 )
-def list(ctx: click.Context, filter, date):
+@click.option(
+    "--no-ids",
+    "no_ids",
+    is_flag=True,
+    help="Don't show the UUIDs.",
+)
+def list(ctx: click.Context, filter, date, no_ids):
     """List pending tasks according to a filter ∈ [all, p0, p1, p2, late]."""
     tasks = ctx.obj.getTasks(date)
     if filter == "all":
@@ -73,7 +87,7 @@ def list(ctx: click.Context, filter, date):
         print(f"ERROR: unrecognized filter provided ({filter})")
         exit(1)
     for task in filtered_tasks:
-        print(f"- {task}")
+        print(f"- {task.toString(not no_ids)}")
 
 @cli.command()
 @click.pass_context
@@ -155,12 +169,12 @@ def put(ctx: click.Context, name, notes, date):
 def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
     """Generate a CSV report of how consistently tasks have been completed within the specified window.
     
-    Grading criteria:
-    - P0: ... tasks must be completed same day.
-    - P1: ... tasks must be completed within a week.
+    Grading criteria:\n
+    - P0: ... tasks must be completed same day.\n
+    - P1: ... tasks must be completed within a week.\n
     - P2: ... tasks must be completed within a month.
 
-    Deletion / failure criteria:
+    Deletion / failure criteria:\n
     - P[0-2]: [T] ... tasks that have not be completed within the appropriate window.
     """
     with open(out_file, "a") as logfile:
@@ -175,11 +189,11 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
                 logfile.write(f"{task.id}|{task.due}|{task.name}|{task.days_late}|{failed}\n")
                 if late:
                     if failed:
-                        failed_tasks.append((task.days_late, task.id, f"({task.due}) [{task.days_late} days late] {task.name}"))
+                        failed_tasks.append((task.days_late, task.id, task.toString(False)))
                     else:
-                        late_tasks.append((task.days_late, f"({task.due}) [{task.days_late} days late] {task.name}"))
+                        late_tasks.append((task.days_late, task.toString(False)))
                 else:
-                    on_time_tasks.append(f"({task.due}) {task.name}")
+                    on_time_tasks.append(task.toString(False))
         if len(on_time_tasks) > 0:
             sorted_on_time_tasks = sorted(on_time_tasks)
             print("PENDING TASKS:")

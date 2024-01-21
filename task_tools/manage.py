@@ -35,18 +35,26 @@ class Task(object):
             self.days_late = 0
         self.notes = data["notes"].replace("\n", "\n    ") if "notes" in data else None
     
-    def __repr__(self):
+    def toString(self, show_id=True):
         if self.timing >= 0 and self.days_late > 0:
             timed_info = f"[LATE {self.days_late} DAYS] "
         else:
             timed_info = ""
-        return f"(Due {self.due}) {timed_info}'{self.name}' < {self.id} >"
+        if show_id:
+            id_info = f" < {self.id} >"
+        else:
+            id_info = ""
+        return f"(Due {self.due}) {timed_info}'{self.name}'{id_info}"
+
+    def __repr__(self):
+        return self.toString()
 
 class TaskManager(object):
     def __init__(self, **kwargs):
         self.enable_logging = TTD.getKwargsOrDefault("enable_logging", **kwargs)
         if self.enable_logging:
             logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+        self.task_list_id = TTD.getKwargsOrDefault("task_list_id", **kwargs)
         self.service = getGoogleService(
             "tasks",
             "v1",
@@ -63,10 +71,10 @@ class TaskManager(object):
             date = datetime.today()
         fdate = dateTimeToGoogleDate(date + timedelta(days=1))
         if start_date is None:
-            results = self.service.tasks().list(tasklist="MDY2MzkyMzI4NTQ1MTA0NDUwODY6MDow", maxResults=100, showCompleted=False, dueMax=fdate).execute()
+            results = self.service.tasks().list(tasklist=self.task_list_id, maxResults=100, showCompleted=False, dueMax=fdate).execute()
         else:
             fmindate = dateTimeToGoogleDate(start_date - timedelta(days=1))
-            results = self.service.tasks().list(tasklist="MDY2MzkyMzI4NTQ1MTA0NDUwODY6MDow", maxResults=100, showCompleted=False, dueMin=fmindate, dueMax=fdate).execute()
+            results = self.service.tasks().list(tasklist=self.task_list_id, maxResults=100, showCompleted=False, dueMin=fmindate, dueMax=fdate).execute()
         items = results.get('items', [])
         if not items:
             if self.enable_logging:
@@ -87,7 +95,7 @@ class TaskManager(object):
         }
         if self.enable_logging:
             logging.info(f"Creating task {name} (due {date})")
-        self.service.tasks().insert(tasklist="MDY2MzkyMzI4NTQ1MTA0NDUwODY6MDow", body=body).execute()
+        self.service.tasks().insert(tasklist=self.task_list_id, body=body).execute()
     
     def deleteTask(self, task_id):
-        self.service.tasks().delete(tasklist="MDY2MzkyMzI4NTQ1MTA0NDUwODY6MDow", task=task_id).execute()
+        self.service.tasks().delete(tasklist=self.task_list_id, task=task_id).execute()
