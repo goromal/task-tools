@@ -6,6 +6,7 @@ class TaskToolsDefaults:
     TASK_SCOPE = [
         "https://www.googleapis.com/auth/tasks"
     ]
+    GRADER_OUTPUT_FILE = os.path.expanduser("~/data/task_grades/log.csv")
     ENABLE_LOGGING = False
 
     @staticmethod
