@@ -56,9 +56,24 @@ def cli(ctx: click.Context, task_secrets_file, task_refresh_token, enable_loggin
 def list(ctx: click.Context, filter, date):
     """List pending tasks according to a filter ∈ [all, p0, p1, p2, late]."""
     tasks = ctx.obj.getTasks(date)
-    for task in tasks:
-        print(task)
-        print()
+    if filter == "all":
+        filtered_tasks = tasks
+    elif filter == "p0":
+        filtered_tasks = [task for task in tasks if task.timing == 0 and task.days_late == 0]
+    elif filter == "p1":
+        filtered_tasks = [task for task in tasks if task.timing == 1 and task.days_late == 0]
+    elif filter == "p2":
+        filtered_tasks = [task for task in tasks if task.timing == 2 and task.days_late == 0]
+    elif filter == "late":
+        filtered_tasks = [task for task in tasks if task.timing >= 0 and task.days_late > 0]
+    elif filter == "":
+        print("ERROR: no list filter provided.")
+        exit(1)
+    else:
+        print(f"ERROR: unrecognized filter provided ({filter})")
+        exit(1)
+    for task in filtered_tasks:
+        print(f"- {task}")
 
 @cli.command()
 @click.pass_context
