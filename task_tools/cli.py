@@ -150,16 +150,17 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
         late_tasks = []
         failed_tasks = []
         for task in tasks:
-            late = task.days_late > 0
-            failed = task.autogen and late
-            logfile.write(f"{task.id}|{task.due}|{task.name}|{task.days_late}|{failed}\n")
-            if late:
-                if failed:
-                    failed_tasks.append((task.days_late, task.id, f"({task.due}) [{task.days_late} days late] {task.name}"))
+            if task.timing >= 0:
+                late = task.days_late > 0
+                failed = task.autogen and late
+                logfile.write(f"{task.id}|{task.due}|{task.name}|{task.days_late}|{failed}\n")
+                if late:
+                    if failed:
+                        failed_tasks.append((task.days_late, task.id, f"({task.due}) [{task.days_late} days late] {task.name}"))
+                    else:
+                        late_tasks.append((task.days_late, f"({task.due}) [{task.days_late} days late] {task.name}"))
                 else:
-                    late_tasks.append((task.days_late, f"({task.due}) [{task.days_late} days late] {task.name}"))
-            else:
-                on_time_tasks.append(f"({task.due}) {task.name}")
+                    on_time_tasks.append(f"({task.due}) {task.name}")
         if len(on_time_tasks) > 0:
             sorted_on_time_tasks = sorted(on_time_tasks)
             print("PENDING TASKS:")
