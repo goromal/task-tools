@@ -12,26 +12,26 @@ def googleDateToDateTime(google_date):
     return datetime.strptime(google_date.split("T")[0], "%Y-%m-%d")
 
 class Task(object):
+    task_types = {
+        # label: (timing id, days of leeway),
+        "P0:": (0, 0),
+        "P1:": (1, 5),
+        "P2:": (2, 27),
+    }
     def __init__(self, data):
         self.id = data["id"]
         self.name = data["title"]
-        self.due = data["due"].split("T")[0]
-        due_date = googleDateToDateTime(data["due"])
-        if self.name[:3] == "P0:":
-            self.timing = 0
+        created_date = googleDateToDateTime(data["due"])
+        if self.name[:3] in Task.task_types:
+            self.timing = Task.task_types[self.name[:3]][0]
             self.autogen = ("[T]" in self.name)
+            due_date = created_date + timedelta(days=Task.task_types[self.name[:3]][1])
+            self.due = due_date.strftime("%Y-%m-%d")
             self.days_late = max((datetime.today() - due_date).days, 0)
-        elif self.name[:3] == "P1:":
-            self.timing = 1
-            self.autogen = ("[T]" in self.name)
-            self.days_late = max((datetime.today() - due_date).days - 5, 0)
-        elif self.name[:3] == "P2:":
-            self.timing = 2
-            self.autogen = ("[T]" in self.name)
-            self.days_late = max((datetime.today() - due_date).days - 27, 0)
         else:
             self.timing = -1
             self.autogen = False
+            self.due = data["due"].split("T")[0]
             self.days_late = 0
         self.notes = data["notes"].replace("\n", "\n    ") if "notes" in data else None
     
