@@ -15,23 +15,29 @@ class Task(object):
     def __init__(self, data):
         self.id = data["id"]
         self.name = data["title"]
-        self.due = data["due"].split("T")[0]
-        due_date = googleDateToDateTime(data["due"])
+        created_date = googleDateToDateTime(data["due"])
         if self.name[:3] == "P0:":
             self.timing = 0
             self.autogen = ("[T]" in self.name)
+            due_date = created_date + datetime.timedelta(days=0)
+            self.due = due_date.strftime("%y-%m-%d")
             self.days_late = max((datetime.today() - due_date).days, 0)
         elif self.name[:3] == "P1:":
             self.timing = 1
             self.autogen = ("[T]" in self.name)
-            self.days_late = max((datetime.today() - due_date).days - 5, 0)
+            due_date = created_date + datetime.timedelta(days=5)
+            self.due = due_date.strftime("%y-%m-%d")
+            self.days_late = max((datetime.today() - due_date).days, 0)
         elif self.name[:3] == "P2:":
             self.timing = 2
             self.autogen = ("[T]" in self.name)
-            self.days_late = max((datetime.today() - due_date).days - 27, 0)
+            due_date = created_date + datetime.timedelta(days=27)
+            self.due = due_date.strftime("%y-%m-%d")
+            self.days_late = max((datetime.today() - due_date).days, 0)
         else:
             self.timing = -1
             self.autogen = False
+            self.due = data["due"].split("T")[0]
             self.days_late = 0
         self.notes = data["notes"].replace("\n", "\n    ") if "notes" in data else None
     
