@@ -26,7 +26,7 @@ class Task(object):
             self.timing = Task.task_types[self.name[:3]][0]
             self.autogen = ("[T]" in self.name)
             due_date = created_date + timedelta(days=Task.task_types[self.name[:3]][1])
-            self.due = due_date.strftime("%y-%m-%d")
+            self.due = due_date.strftime("%Y-%m-%d")
             self.days_late = max((datetime.today() - due_date).days, 0)
         else:
             self.timing = -1
