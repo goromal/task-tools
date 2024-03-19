@@ -11,10 +11,10 @@ Usage: task-tools [OPTIONS] COMMAND [ARGS]...
 
 Options:
   --task-secrets-file PATH   Google Tasks client secrets file.  [default:
-                             /home/atorgesen/secrets/task/secrets.json]
+                             ~/secrets/task/secrets.json]
   --task-refresh-token PATH  Google Tasks refresh file (if it exists).
                              [default:
-                             /home/atorgesen/secrets/task/token.json]
+                             ~/secrets/task/token.json]
   --task-list-id TEXT        UUID of the Task List to query.  [default:
                              MDY2MzkyMzI4NTQ1MTA0NDUwODY6MDow]
   --enable-logging BOOLEAN   Whether to enable logging.  [default: False]
@@ -32,7 +32,7 @@ Commands:
 ```bash
 Usage: task-tools list [OPTIONS] FILTER
 
-  List pending tasks according to a filter ∈ [all, p0, p1, p2, late].
+  List pending tasks according to a filter ∈ [all, p0, p1, p2, late, ranked].
 
 Options:
   --date [%Y-%m-%d]  Maximum due date for filtering tasks.  [default:
@@ -93,7 +93,7 @@ Options:
   --end-date [%Y-%m-%d]    Last day of the grading window.  [default:
                            Today]
   -o, --out PATH           CSV file to generate the report in.  [default:
-                           /home/atorgesen/data/task_grades/log.csv]
+                           ~/data/task_grades/log.csv]
   --dry-run                Do a dry run; no task deletions.
   --help                   Show this message and exit.
 ```
