@@ -26,25 +26,45 @@ class Task(object):
             self.timing = Task.task_types[self.name[:3]][0]
             self.autogen = ("[T]" in self.name)
             due_date = created_date + timedelta(days=Task.task_types[self.name[:3]][1])
+            self.days_score = (datetime.today() - due_date).days
             self.due = due_date.strftime("%Y-%m-%d")
-            self.days_late = max((datetime.today() - due_date).days, 0)
+            self.days_late = max(self.days_score, 0)
         else:
             self.timing = -1
             self.autogen = False
+            self.days_score = 0
             self.due = data["due"].split("T")[0]
             self.days_late = 0
         self.notes = data["notes"].replace("\n", "\n    ") if "notes" in data else None
     
-    def toString(self, show_id=True):
-        if self.timing >= 0 and self.days_late > 0:
+    def toString(self, show_id=True, show_due=True, show_bar=False):
+        if self.timing >= 0 and self.days_late > 0 and show_due:
             timed_info = f"[LATE {self.days_late} DAYS] "
         else:
             timed_info = ""
+        if show_due:
+            due_info = f"(Due {self.due}) "
+        else:
+            due_info = ""
+        if show_bar and self.timing >= 0:
+            normalized_score = 1.0 - (float(max(-self.days_score, 0)) / max(float(Task.task_types[self.name[:3]][1]), 1.0))
+            if 0 <= normalized_score < 0.25:
+                bar_info = "🟩🟩🟩🟩 "
+            elif 0.25 <= normalized_score < 0.5:
+                bar_info = "🟥🟩🟩🟩 "
+            elif 0.5 <= normalized_score < 0.75:
+                bar_info = "🟥🟥🟩🟩 "
+            elif 0.75 <= normalized_score < 1.0:
+                bar_info = "🟥🟥🟥🟩 "
+            else:
+                bar_info = "🟥🟥🟥🟥 "
+        else:
+            bar_info = ""
         if show_id:
             id_info = f" < {self.id} >"
         else:
             id_info = ""
-        return f"(Due {self.due}) {timed_info}'{self.name}'{id_info}"
+        return f"{bar_info}{due_info}{timed_info}{self.name}{id_info}"
 
     def __repr__(self):
         return self.toString()
