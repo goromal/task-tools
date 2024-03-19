@@ -68,8 +68,9 @@ def cli(ctx: click.Context, task_secrets_file, task_refresh_token, task_list_id,
     help="Don't show the UUIDs.",
 )
 def list(ctx: click.Context, filter, date, no_ids):
-    """List pending tasks according to a filter ∈ [all, p0, p1, p2, late]."""
+    """List pending tasks according to a filter ∈ [all, p0, p1, p2, late, ranked]."""
     tasks = ctx.obj.getTasks(date)
+    show_bar = False
     if filter == "all":
         filtered_tasks = tasks
     elif filter == "p0":
@@ -80,6 +81,10 @@ def list(ctx: click.Context, filter, date, no_ids):
         filtered_tasks = [task for task in tasks if task.timing == 2 and task.days_late == 0]
     elif filter == "late":
         filtered_tasks = [task for task in tasks if task.timing >= 0 and task.days_late > 0]
+    elif filter == "ranked":
+        show_bar = True
+        raw_tasks = [task for task in tasks if task.timing >= 0]
+        filtered_tasks = sorted(raw_tasks, key=lambda t: -t.days_score)
     elif filter == "":
         print("ERROR: no list filter provided.")
         exit(1)
@@ -87,7 +92,7 @@ def list(ctx: click.Context, filter, date, no_ids):
         print(f"ERROR: unrecognized filter provided ({filter})")
         exit(1)
     for task in filtered_tasks:
-        print(f"- {task.toString(not no_ids)}")
+        print(f"{task.toString(not no_ids, not show_bar, show_bar)}")
 
 @cli.command()
 @click.pass_context
