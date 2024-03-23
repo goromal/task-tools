@@ -15,7 +15,7 @@ class Task(object):
     task_types = {
         # label: (timing id, days of leeway),
         "P0:": (0, 0),
-        "P1:": (1, 5),
+        "P1:": (1, 6),
         "P2:": (2, 27),
     }
     def __init__(self, data):
