@@ -68,7 +68,7 @@ def cli(ctx: click.Context, task_secrets_file, task_refresh_token, task_list_id,
     help="Don't show the UUIDs.",
 )
 def list(ctx: click.Context, filter, date, no_ids):
-    """List pending tasks according to a filter ∈ [all, p0, p1, p2, late, ranked]."""
+    """List pending tasks according to a filter ∈ [all, p0, p1, p2, p3, late, ranked]."""
     tasks = ctx.obj.getTasks(date)
     show_bar = False
     if filter == "all":
@@ -79,6 +79,8 @@ def list(ctx: click.Context, filter, date, no_ids):
         filtered_tasks = [task for task in tasks if task.timing == 1 and task.days_late == 0]
     elif filter == "p2":
         filtered_tasks = [task for task in tasks if task.timing == 2 and task.days_late == 0]
+    elif filter == "p3":
+        filtered_tasks = [task for task in tasks if task.timing == 3 and task.days_late == 0]
     elif filter == "late":
         filtered_tasks = [task for task in tasks if task.timing >= 0 and task.days_late > 0]
     elif filter == "ranked":
@@ -177,10 +179,11 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
     Grading criteria:\n
     - P0: ... tasks must be completed same day.\n
     - P1: ... tasks must be completed within a week.\n
-    - P2: ... tasks must be completed within a month.
+    - P2: ... tasks must be completed within a month.\n
+    - P3: ... tasks must be completed within 90 days.
 
     Deletion / failure criteria:\n
-    - P[0-2]: [T] ... tasks that have not be completed within the appropriate window.
+    - P[0-3]: [T] ... tasks that have not be completed within the appropriate window.
     """
     with open(out_file, "a") as logfile:
         tasks = ctx.obj.getTasks(end_date, start_date=start_date)

@@ -17,6 +17,7 @@ class Task(object):
         "P0:": (0, 0),
         "P1:": (1, 6),
         "P2:": (2, 27),
+        "P3:": (3, 90),
     }
     def __init__(self, data):
         self.id = data["id"]
