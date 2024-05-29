@@ -81,7 +81,6 @@ class TaskManager(object):
             "v1",
             TTD.getKwargsOrDefault("task_secrets_file", **kwargs),
             TTD.getKwargsOrDefault("task_refresh_token", **kwargs),
-            TTD.getKwargsOrDefault("task_scope", **kwargs),
             headless=True
         )
 
