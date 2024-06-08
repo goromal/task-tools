@@ -71,19 +71,31 @@ class Task(object):
         return self.toString()
 
 class TaskManager(object):
+    def _check_valid_interface(func):
+        def wrapper(self, *args, **kwargs):
+            if self.service is None:
+                raise Exception("Tasks interface not initialized properly; check your secrets")
+            return func(self, *args, **kwargs)
+        return wrapper
+
     def __init__(self, **kwargs):
         self.enable_logging = TTD.getKwargsOrDefault("enable_logging", **kwargs)
         if self.enable_logging:
             logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
         self.task_list_id = TTD.getKwargsOrDefault("task_list_id", **kwargs)
-        self.service = getGoogleService(
-            "tasks",
-            "v1",
-            TTD.getKwargsOrDefault("task_secrets_file", **kwargs),
-            TTD.getKwargsOrDefault("task_refresh_token", **kwargs),
-            headless=True
-        )
+        self.service = None
+        try:
+            self.service = getGoogleService(
+                "tasks",
+                "v1",
+                TTD.getKwargsOrDefault("task_secrets_file", **kwargs),
+                TTD.getKwargsOrDefault("task_refresh_token", **kwargs),
+                headless=True
+            )
+        except:
+            pass
 
+    @_check_valid_interface
     def getTasks(self, date=None, start_date=None):
         if date is None:
             date = datetime.today()
@@ -100,6 +112,7 @@ class TaskManager(object):
             return []
         return [Task(item) for item in items]
 
+    @_check_valid_interface
     def putTask(self, name, notes, date=None):
         if date is None:
             date = datetime.today()
@@ -114,6 +127,7 @@ class TaskManager(object):
         if self.enable_logging:
             logging.info(f"Creating task {name} (due {date})")
         self.service.tasks().insert(tasklist=self.task_list_id, body=body).execute()
-    
+
+    @_check_valid_interface
     def deleteTask(self, task_id):
         self.service.tasks().delete(tasklist=self.task_list_id, task=task_id).execute()

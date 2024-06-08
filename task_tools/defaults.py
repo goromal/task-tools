@@ -1,10 +1,10 @@
 import os
 
 class TaskToolsDefaults:
-    TASK_SECRETS_FILE = os.path.expanduser("~/secrets/google/client_secrets.json")
-    TASK_REFRESH_TOKEN = os.path.expanduser("~/secrets/google/refresh.json")
+    TASK_SECRETS_FILE = "~/secrets/google/client_secrets.json"
+    TASK_REFRESH_TOKEN = "~/secrets/google/refresh.json"
     TASK_LIST_ID = "MDY2MzkyMzI4NTQ1MTA0NDUwODY6MDow"
-    GRADER_OUTPUT_FILE = os.path.expanduser("~/data/task_grades/log.csv")
+    GRADER_OUTPUT_FILE = "~/data/task_grades/log.csv"
     ENABLE_LOGGING = False
 
     @staticmethod

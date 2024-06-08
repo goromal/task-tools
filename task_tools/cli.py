@@ -10,7 +10,7 @@ from task_tools.manage import TaskManager
 @click.option(
     "--task-secrets-file",
     "task_secrets_file",
-    type=click.Path(exists=True),
+    type=click.Path(),
     default=TTD.TASK_SECRETS_FILE,
     show_default=True,
     help="Google Tasks client secrets file.",
@@ -185,7 +185,7 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
     Deletion / failure criteria:\n
     - P[0-3]: [T] ... tasks that have not be completed within the appropriate window.
     """
-    with open(out_file, "a") as logfile:
+    with open(os.path.expanduser(out_file), "a") as logfile:
         tasks = ctx.obj.getTasks(end_date, start_date=start_date)
         on_time_tasks = []
         late_tasks = []
