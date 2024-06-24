@@ -234,6 +234,66 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
         else:
             print("NO FAILED TASKS")
 
+@cli.command()
+@click.pass_context
+@click.option(
+    "--start-date",
+    "start_date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(datetime.date.today() - datetime.timedelta(days=7)),
+    show_default=True,
+    help="First day of the cleaning window.",
+)
+@click.option(
+    "--end-date",
+    "end_date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(datetime.date.today()),
+    show_default=True,
+    help="Last day of the cleaning window.",
+)
+@click.option(
+    "--dry-run",
+    "dry_run",
+    is_flag=True,
+    help="Do a dry run; no task deletions.",
+)
+def clean(ctx: click.Context, start_date, end_date, dry_run):
+    """Delete / clean up failed timed tasks.
+    
+    Timing criteria:\n
+    - P0: ... tasks must be completed same day.\n
+    - P1: ... tasks must be completed within a week.\n
+    - P2: ... tasks must be completed within a month.\n
+    - P3: ... tasks must be completed within 90 days.
+
+    Deletion / failure criteria:\n
+    - P[0-3]: [T] ... tasks that have not be completed within the appropriate window.
+    """
+    tasks = ctx.obj.getTasks(end_date, start_date=start_date)
+    failed_tasks = []
+    for task in tasks:
+        if task.timing >= 0:
+            print(task)
+            failed = task.autogen and task.days_late > 0
+            if failed:
+                failed_tasks.append((task.days_late, task.id, task.toString(False)))
+    if len(failed_tasks) > 0:
+        sorted_failed_tasks = sorted(failed_tasks, key=lambda k: -k[0])
+        print("FAILED TASKS:")
+        for _, _, task in sorted_failed_tasks:
+            print(f"- {task}")
+        if not dry_run:
+            print("\nDeleting failed tasks...")
+            for _, task_id, _ in sorted_failed_tasks:
+                try:
+                    ctx.obj.deleteTask(task_id)
+                except Exception as e:
+                    print(f"WARNING: {e}")
+                    continue
+    else:
+        print("NO FAILED TASKS")
+
 def main():
     cli()
 
