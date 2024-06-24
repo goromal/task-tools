@@ -274,7 +274,6 @@ def clean(ctx: click.Context, start_date, end_date, dry_run):
     failed_tasks = []
     for task in tasks:
         if task.timing >= 0:
-            print(task)
             failed = task.autogen and task.days_late > 0
             if failed:
                 failed_tasks.append((task.days_late, task.id, task.toString(False)))
