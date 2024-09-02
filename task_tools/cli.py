@@ -184,11 +184,14 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
 
     Deletion / failure criteria:\n
     - P[0-3]: [T] ... tasks that have not be completed within the appropriate window.
+
+    P0 manually generated tasks will be migrated to the current day.
     """
     with open(os.path.expanduser(out_file), "a") as logfile:
         tasks = ctx.obj.getTasks(end_date, start_date=start_date)
         on_time_tasks = []
         late_tasks = []
+        migrate_tasks = []
         failed_tasks = []
         for task in tasks:
             if task.timing >= 0:
@@ -199,7 +202,7 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
                     if failed:
                         failed_tasks.append((task.days_late, task.id, task.toString(False)))
                     else:
-                        late_tasks.append((task.days_late, task.toString(False)))
+                        late_tasks.append((task.days_late, task, task.toString(False)))
                 else:
                     on_time_tasks.append(task.toString(False))
         if len(on_time_tasks) > 0:
@@ -213,8 +216,16 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
         if len(late_tasks) > 0:
             sorted_late_tasks = sorted(late_tasks, key=lambda k: -k[0])
             print("LATE TASKS:")
-            for _, task in sorted_late_tasks:
-                print(f"- {task}")
+            for _, task, taskname in sorted_late_tasks:
+                to_migrate = task.timing == 0 and not task.autogen
+                print(f"- {taskname}{' [TO MIGRATE]' if to_migrate else ''}")
+                if to_migrate:
+                    migrate_tasks.append(task)
+            if len(migrate_tasks) > 0 and not dry_run:
+                print("\nMigrating applicable late tasks...")
+                for migrate_task in migrate_tasks:
+                    ctx.obj.putTask(migrate_task.name, migrate_task.notes)
+                    ctx.obj.deleteTask(migrate_task.id)
         else:
             print("NO LATE TASKS")
         print()
@@ -269,14 +280,32 @@ def clean(ctx: click.Context, start_date, end_date, dry_run):
 
     Deletion / failure criteria:\n
     - P[0-3]: [T] ... tasks that have not be completed within the appropriate window.
+
+    P0 manually generated tasks will be migrated to the current day.
     """
     tasks = ctx.obj.getTasks(end_date, start_date=start_date)
     failed_tasks = []
+    migrate_tasks = []
     for task in tasks:
         if task.timing >= 0:
             failed = task.autogen and task.days_late > 0
             if failed:
                 failed_tasks.append((task.days_late, task.id, task.toString(False)))
+            migrate = task.days_late > 0 and not task.autogen and task.timing == 0
+            if migrate:
+                migrate_tasks.append(task)
+    if len(migrate_tasks) > 0:
+        print("MIGRATABLE TASKS:")
+        for task in migrate_tasks:
+            print(f"- {task.name}")
+        if not dry_run:
+            print("\nMigrating tasks...")
+            for migrate_task in migrate_tasks:
+                ctx.obj.putTask(migrate_task.name, migrate_task.notes)
+                ctx.obj.deleteTask(migrate_task.id)
+    else:
+        print("NO TASKS TO MIGRATE")
+    print()
     if len(failed_tasks) > 0:
         sorted_failed_tasks = sorted(failed_tasks, key=lambda k: -k[0])
         print("FAILED TASKS:")
