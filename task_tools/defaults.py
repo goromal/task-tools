@@ -1,5 +1,6 @@
 import os
 
+
 class TaskToolsDefaults:
     TASK_SECRETS_FILE = "~/secrets/google/client_secrets.json"
     TASK_REFRESH_TOKEN = "~/secrets/google/refresh.json"
@@ -15,4 +16,8 @@ class TaskToolsDefaults:
             "enable_logging": TaskToolsDefaults.ENABLE_LOGGING,
             "task_list_id": TaskToolsDefaults.TASK_LIST_ID,
         }
-        return kwargs[argname] if (argname in kwargs and kwargs[argname] is not None) else argname_mapping[argname]
+        return (
+            kwargs[argname]
+            if (argname in kwargs and kwargs[argname] is not None)
+            else argname_mapping[argname]
+        )

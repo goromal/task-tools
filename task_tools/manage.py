@@ -5,11 +5,14 @@ from datetime import datetime, timedelta
 from easy_google_auth.auth import getGoogleService
 from task_tools.defaults import TaskToolsDefaults as TTD
 
+
 def dateTimeToGoogleDate(date_time):
     return f"{date_time.strftime('%Y-%m-%d')}T23:59:59.000Z"
 
+
 def googleDateToDateTime(google_date):
     return datetime.strptime(google_date.split("T")[0], "%Y-%m-%d")
+
 
 class Task(object):
     task_types = {
@@ -19,13 +22,14 @@ class Task(object):
         "P2:": (2, 27),
         "P3:": (3, 90),
     }
+
     def __init__(self, data):
         self.id = data["id"]
         self.name = data["title"]
         created_date = googleDateToDateTime(data["due"])
         if self.name[:3] in Task.task_types:
             self.timing = Task.task_types[self.name[:3]][0]
-            self.autogen = ("[T]" in self.name)
+            self.autogen = "[T]" in self.name
             due_date = created_date + timedelta(days=Task.task_types[self.name[:3]][1])
             self.days_score = (datetime.today() - due_date).days
             self.due = due_date.strftime("%Y-%m-%d")
@@ -37,7 +41,7 @@ class Task(object):
             self.due = data["due"].split("T")[0]
             self.days_late = 0
         self.notes = data["notes"].replace("\n", "\n    ") if "notes" in data else None
-    
+
     def toString(self, show_id=True, show_due=True, show_bar=False):
         if self.timing >= 0 and self.days_late > 0 and show_due:
             timed_info = f"[LATE {self.days_late} DAYS] "
@@ -48,7 +52,10 @@ class Task(object):
         else:
             due_info = ""
         if show_bar and self.timing >= 0:
-            normalized_score = 1.0 - (float(max(-self.days_score, 0)) / max(float(Task.task_types[self.name[:3]][1]), 1.0))
+            normalized_score = 1.0 - (
+                float(max(-self.days_score, 0))
+                / max(float(Task.task_types[self.name[:3]][1]), 1.0)
+            )
             if 0 <= normalized_score < 0.25:
                 bar_info = "🟩🟩🟩🟩 "
             elif 0.25 <= normalized_score < 0.5:
@@ -70,12 +77,16 @@ class Task(object):
     def __repr__(self):
         return self.toString()
 
+
 class TaskManager(object):
     def _check_valid_interface(func):
         def wrapper(self, *args, **kwargs):
             if self.service is None:
-                raise Exception("Tasks interface not initialized properly; check your secrets")
+                raise Exception(
+                    "Tasks interface not initialized properly; check your secrets"
+                )
             return func(self, *args, **kwargs)
+
         return wrapper
 
     def __init__(self, **kwargs):
@@ -90,7 +101,7 @@ class TaskManager(object):
                 "v1",
                 TTD.getKwargsOrDefault("task_secrets_file", **kwargs),
                 TTD.getKwargsOrDefault("task_refresh_token", **kwargs),
-                headless=True
+                headless=True,
             )
         except:
             pass
@@ -101,11 +112,30 @@ class TaskManager(object):
             date = datetime.today()
         fdate = dateTimeToGoogleDate(date + timedelta(days=1))
         if start_date is None:
-            results = self.service.tasks().list(tasklist=self.task_list_id, maxResults=100, showCompleted=False, dueMax=fdate).execute()
+            results = (
+                self.service.tasks()
+                .list(
+                    tasklist=self.task_list_id,
+                    maxResults=100,
+                    showCompleted=False,
+                    dueMax=fdate,
+                )
+                .execute()
+            )
         else:
-            fmindate = dateTimeToGoogleDate(start_date - timedelta(days=1))
-            results = self.service.tasks().list(tasklist=self.task_list_id, maxResults=100, showCompleted=False, dueMin=fmindate, dueMax=fdate).execute()
-        items = results.get('items', [])
+            fmindate = dateTimeToGoogleDate(start_date)  #  - timedelta(days=1))
+            results = (
+                self.service.tasks()
+                .list(
+                    tasklist=self.task_list_id,
+                    maxResults=100,
+                    showCompleted=False,
+                    dueMin=fmindate,
+                    dueMax=fdate,
+                )
+                .execute()
+            )
+        items = results.get("items", [])
         if not items:
             if self.enable_logging:
                 logging.warn(f"No tasks found through {date}.")
