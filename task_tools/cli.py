@@ -1,9 +1,11 @@
 import click
 import datetime
 import os
+import time
 
 from task_tools.defaults import TaskToolsDefaults as TTD
 from task_tools.manage import TaskManager
+
 
 @click.group()
 @click.pass_context
@@ -39,13 +41,25 @@ from task_tools.manage import TaskManager
     show_default=True,
     help="Whether to enable logging.",
 )
-def cli(ctx: click.Context, task_secrets_file, task_refresh_token, task_list_id, enable_logging):
+def cli(
+    ctx: click.Context,
+    task_secrets_file,
+    task_refresh_token,
+    task_list_id,
+    enable_logging,
+):
     """Manage Google Tasks."""
     try:
-        ctx.obj = TaskManager(task_secrets_file=task_secrets_file, task_refresh_token=task_refresh_token, task_list_id=task_list_id, enable_logging=enable_logging)
+        ctx.obj = TaskManager(
+            task_secrets_file=task_secrets_file,
+            task_refresh_token=task_refresh_token,
+            task_list_id=task_list_id,
+            enable_logging=enable_logging,
+        )
     except Exception as e:
         print(f"Program error: {e}")
         exit(1)
+
 
 @cli.command()
 @click.pass_context
@@ -74,15 +88,25 @@ def list(ctx: click.Context, filter, date, no_ids):
     if filter == "all":
         filtered_tasks = tasks
     elif filter == "p0":
-        filtered_tasks = [task for task in tasks if task.timing == 0 and task.days_late == 0]
+        filtered_tasks = [
+            task for task in tasks if task.timing == 0 and task.days_late == 0
+        ]
     elif filter == "p1":
-        filtered_tasks = [task for task in tasks if task.timing == 1 and task.days_late == 0]
+        filtered_tasks = [
+            task for task in tasks if task.timing == 1 and task.days_late == 0
+        ]
     elif filter == "p2":
-        filtered_tasks = [task for task in tasks if task.timing == 2 and task.days_late == 0]
+        filtered_tasks = [
+            task for task in tasks if task.timing == 2 and task.days_late == 0
+        ]
     elif filter == "p3":
-        filtered_tasks = [task for task in tasks if task.timing == 3 and task.days_late == 0]
+        filtered_tasks = [
+            task for task in tasks if task.timing == 3 and task.days_late == 0
+        ]
     elif filter == "late":
-        filtered_tasks = [task for task in tasks if task.timing >= 0 and task.days_late > 0]
+        filtered_tasks = [
+            task for task in tasks if task.timing >= 0 and task.days_late > 0
+        ]
     elif filter == "ranked":
         show_bar = True
         raw_tasks = [task for task in tasks if task.timing >= 0]
@@ -95,6 +119,7 @@ def list(ctx: click.Context, filter, date, no_ids):
         exit(1)
     for task in filtered_tasks:
         print(f"{task.toString(not no_ids, not show_bar, show_bar)}")
+
 
 @cli.command()
 @click.pass_context
@@ -110,6 +135,7 @@ def delete(ctx: click.Context, task_id):
         print(f"Program error: {e}")
         exit(1)
     print(f"Task {task_id} deleted.")
+
 
 @cli.command()
 @click.pass_context
@@ -139,6 +165,135 @@ def delete(ctx: click.Context, task_id):
 def put(ctx: click.Context, name, notes, date):
     """Upload a task."""
     ctx.obj.putTask(name, notes, date)
+
+
+@cli.command()
+@click.pass_context
+@click.option(
+    "--spec-csv",
+    "spec_csv",
+    type=click.Path(),
+    default="~/configs/intervaled-tasks.csv",
+    show_default=True,
+    help="Path to the CSV containing the task specs.",
+)
+@click.option(
+    "--start-date",
+    "start_date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(datetime.date.today()),
+    show_default=True,
+    help="First day of the window.",
+)
+@click.option(
+    "--end-date",
+    "end_date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(datetime.date(datetime.datetime.today().year, 12, 31)),
+    show_default=True,
+    help="Last day of the window.",
+)
+@click.option(
+    "--dry-run",
+    "dry_run",
+    is_flag=True,
+    help="Do a dry run; no task creations.",
+)
+def put_spec(ctx: click.Context, spec_csv, start_date, end_date, dry_run):
+    """Read a CSV of task specifications and idempotently put them on your calendar.
+
+    CSV must be pipe-delimited. Example:
+
+    d | "Daily Task Name" | "Task Description"
+    w | "Weekly Task Name" | "Each Sunday"
+    m | "Monthly Task Name" | "First Sunday of each Month"
+    q | "Quarterly Task Name" | "First Sunday of each Quarter"
+    """
+    spec_csv = os.path.expanduser(spec_csv)
+
+    daily_task_specs = []
+    all_sundays = []
+    weekly_task_specs = []
+    first_sundays_of_month = []
+    monthly_task_specs = []
+    first_sundays_of_quarter = []
+    quarterly_task_specs = []
+
+    current_date = start_date
+    while current_date.weekday() != 6:
+        current_date += datetime.timedelta(days=1)
+
+    while current_date <= end_date:
+        all_sundays.append(current_date)
+        current_date += datetime.timedelta(days=7)
+
+    month = start_date.month
+    year = start_date.year
+    quarter_months = (1, 4, 7, 10)
+
+    while datetime.datetime(year, month, 1) <= end_date:
+        first_of_month = datetime.datetime(year, month, 1)
+        while first_of_month.weekday() != 6:
+            first_of_month += datetime.timedelta(days=1)
+        if start_date <= first_of_month <= end_date:
+            first_sundays_of_month.append(first_of_month)
+            if month in quarter_months:
+                first_sundays_of_quarter.append(first_of_month)
+        if month == 12:
+            month = 1
+            year += 1
+        else:
+            month += 1
+
+    with open(spec_csv, "r") as csvfile:
+        for specline in csvfile:
+            speclist = specline.split("|")
+            if len(speclist) > 1:
+                rtype = speclist[0]
+                ttitle = speclist[1]
+                tdesc = speclist[2]
+                if rtype.lower() == "d":
+                    daily_task_specs.append((ttitle, tdesc))
+                elif rtype.lower() == "w":
+                    weekly_task_specs.append((ttitle, tdesc))
+                elif rtype.lower() == "m":
+                    monthly_task_specs.append((ttitle, tdesc))
+                elif rtype.lower() == "q":
+                    quarterly_task_specs.append((ttitle, tdesc))
+
+    current_date = start_date
+    while current_date <= end_date:
+        print(f"Tasks for {current_date.strftime('%Y-%m-%d')}:")
+        existing_ttitles = [
+            task.name
+            for task in ctx.obj.getTasks(date=current_date, start_date=current_date)
+        ]
+        for task_title, task_description in daily_task_specs:
+            if task_title not in existing_ttitles:
+                print(f"  {task_title}")
+                if not dry_run:
+                    ctx.obj.putTask(task_title, task_description, current_date)
+        if current_date in all_sundays:
+            for task_title, task_description in weekly_task_specs:
+                if task_title not in existing_ttitles:
+                    print(f"  {task_title}")
+                    if not dry_run:
+                        ctx.obj.putTask(task_title, task_description, current_date)
+        if current_date in first_sundays_of_month:
+            for task_title, task_description in monthly_task_specs:
+                if task_title not in existing_ttitles:
+                    print(f"  {task_title}")
+                    if not dry_run:
+                        ctx.obj.putTask(task_title, task_description, current_date)
+        if current_date in first_sundays_of_quarter:
+            for task_title, task_description in quarterly_task_specs:
+                if task_title not in existing_ttitles:
+                    print(f"  {task_title}")
+                    if not dry_run:
+                        ctx.obj.putTask(task_title, task_description, current_date)
+        current_date += datetime.timedelta(days=1)
+        time.sleep(1.0)
+
 
 @cli.command()
 @click.pass_context
@@ -175,7 +330,7 @@ def put(ctx: click.Context, name, notes, date):
 )
 def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
     """Generate a CSV report of how consistently tasks have been completed within the specified window.
-    
+
     Grading criteria:\n
     - P0: ... tasks must be completed same day.\n
     - P1: ... tasks must be completed within a week.\n
@@ -188,7 +343,9 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
     P0 manually generated tasks will be migrated to the current day.
     """
     with open(os.path.expanduser(out_file), "a") as logfile:
-        tasks = ctx.obj.getTasks(end_date, start_date=start_date)
+        tasks = ctx.obj.getTasks(
+            end_date, start_date=start_date - datetime.timedelta(days=1)
+        )
         on_time_tasks = []
         late_tasks = []
         migrate_tasks = []
@@ -197,10 +354,14 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
             if task.timing >= 0:
                 late = task.days_late > 0
                 failed = task.autogen and late
-                logfile.write(f"{task.id}|{task.due}|{task.name}|{task.days_late}|{failed}\n")
+                logfile.write(
+                    f"{task.id}|{task.due}|{task.name}|{task.days_late}|{failed}\n"
+                )
                 if late:
                     if failed:
-                        failed_tasks.append((task.days_late, task.id, task.toString(False)))
+                        failed_tasks.append(
+                            (task.days_late, task.id, task.toString(False))
+                        )
                     else:
                         late_tasks.append((task.days_late, task, task.toString(False)))
                 else:
@@ -245,6 +406,7 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
         else:
             print("NO FAILED TASKS")
 
+
 @cli.command()
 @click.pass_context
 @click.option(
@@ -271,7 +433,7 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
 )
 def clean(ctx: click.Context, start_date, end_date, dry_run):
     """Delete / clean up failed timed tasks.
-    
+
     Timing criteria:\n
     - P0: ... tasks must be completed same day.\n
     - P1: ... tasks must be completed within a week.\n
@@ -283,7 +445,9 @@ def clean(ctx: click.Context, start_date, end_date, dry_run):
 
     P0 manually generated tasks will be migrated to the current day.
     """
-    tasks = ctx.obj.getTasks(end_date, start_date=start_date)
+    tasks = ctx.obj.getTasks(
+        end_date, start_date=start_date - datetime.timedelta(days=1)
+    )
     failed_tasks = []
     migrate_tasks = []
     for task in tasks:
@@ -322,8 +486,10 @@ def clean(ctx: click.Context, start_date, end_date, dry_run):
     else:
         print("NO FAILED TASKS")
 
+
 def main():
     cli()
+
 
 if __name__ == "__main__":
     main()
