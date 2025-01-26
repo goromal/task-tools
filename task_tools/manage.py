@@ -2,7 +2,7 @@ import logging
 import sys
 from datetime import datetime, timedelta
 
-from easy_google_auth.auth import getGoogleService
+from easy_google_auth.auth import getRateLimitedGoogleService
 from task_tools.defaults import TaskToolsDefaults as TTD
 
 
@@ -96,12 +96,13 @@ class TaskManager(object):
         self.task_list_id = TTD.getKwargsOrDefault("task_list_id", **kwargs)
         self.service = None
         try:
-            self.service = getGoogleService(
+            self.service = getRateLimitedGoogleService(
                 "tasks",
                 "v1",
                 TTD.getKwargsOrDefault("task_secrets_file", **kwargs),
                 TTD.getKwargsOrDefault("task_refresh_token", **kwargs),
                 headless=True,
+                max_rate_per_sec=1.0,
             )
         except:
             pass
