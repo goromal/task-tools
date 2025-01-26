@@ -102,6 +102,7 @@ class TaskManager(object):
                 TTD.getKwargsOrDefault("task_secrets_file", **kwargs),
                 TTD.getKwargsOrDefault("task_refresh_token", **kwargs),
                 headless=True,
+                max_rate_per_sec=1.0,
             )
         except:
             pass
