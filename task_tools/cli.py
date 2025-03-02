@@ -332,10 +332,9 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
     """Generate a CSV report of how consistently tasks have been completed within the specified window.
 
     Grading criteria:\n
-    - P0: ... tasks must be completed same day.\n
-    - P1: ... tasks must be completed within a week.\n
-    - P2: ... tasks must be completed within a month.\n
-    - P3: ... tasks must be completed within 90 days.
+    - P0: ... tasks must be completed same day. They will be carried over day to day until completed.\n
+    - P1: ... tasks can wait until the next weekly planning session to get scheduled.\n
+    - P2: ... tasks can wait until the next monthly planning session to get scheduled.
 
     Deletion / failure criteria:\n
     - P[0-3]: [T] ... tasks that have not be completed within the appropriate window.
