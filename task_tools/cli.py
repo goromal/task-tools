@@ -163,10 +163,11 @@ def delete_by_name(ctx: click.Context, name_substr, start_date, end_date):
     """Delete all tasks in a range by name."""
     current_date = start_date
     while current_date <= end_date:
+        print(f"Scanning {current_date}...")
         tasks = ctx.obj.getTasks(current_date)
         for task in tasks:
             if name_substr in task.name:
-                print(f"  Deleting task {task.name} on date {current_date}...")
+                print(f"  Deleting task {task.name} on date {current_date}")
                 try:
                     ctx.obj.deleteTask(task.id)
                 except Exception as e:
