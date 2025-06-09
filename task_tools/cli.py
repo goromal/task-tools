@@ -139,6 +139,45 @@ def delete(ctx: click.Context, task_id):
 
 @cli.command()
 @click.pass_context
+@click.argument(
+    "name_substr",
+    type=str,
+)
+@click.option(
+    "--start-date",
+    "start_date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(datetime.date.today()),
+    show_default=True,
+    help="First day of the window.",
+)
+@click.option(
+    "--end-date",
+    "end_date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(datetime.date(datetime.datetime.today().year, 12, 31)),
+    show_default=True,
+    help="Last day of the window.",
+)
+def delete_by_name(ctx: click.Context, name_substr, start_date, end_date):
+    """Delete all tasks in a range by name."""
+    current_date = start_date
+    while current_date <= end_date:
+        print(f"Scanning {current_date}...")
+        tasks = ctx.obj.getTasks(current_date, current_date)
+        for task in tasks:
+            if name_substr in task.name:
+                print(f"  Deleting task {task.name} on date {current_date}")
+                try:
+                    ctx.obj.deleteTask(task.id)
+                except Exception as e:
+                    print(f"Program error: {e}")
+                    exit(1)
+        current_date += datetime.timedelta(days=1)
+
+
+@cli.command()
+@click.pass_context
 @click.option(
     "--name",
     "name",
