@@ -463,7 +463,7 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
             for task in migrate_p1_tasks:
                 print(f"- {task.name}")
                 ctx.obj.putTask(
-                    task.name.replace("P1","P0"),replace("p1","P0"),
+                    task.name.replace("P1","P0").replace("p1","P0"),
                     task.notes,
                     get_next_sunday()
                 )
@@ -474,7 +474,7 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
             for task in migrate_p2_tasks:
                 print(f"- {task.name}")
                 ctx.obj.putTask(
-                    task.name.replace("P2","P0"),replace("p2","P0"),
+                    task.name.replace("P2","P0").replace("p2","P0"),
                     task.notes,
                     get_first_sunday_next_month()
                 )
