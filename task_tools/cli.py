@@ -6,6 +6,25 @@ import time
 from task_tools.defaults import TaskToolsDefaults as TTD
 from task_tools.manage import TaskManager
 
+def _get_next_sunday():
+    today = datetime.date.today()
+    if today.weekday() == 6:  # Sunday
+        return today
+    days_ahead = 6 - today.weekday()
+    return today + datetime.timedelta(days=days_ahead)
+
+def _get_first_sunday_next_month():
+    today = datetime.date.today()
+    # If today is the first Sunday of the month, return today
+    if today.weekday() == 6 and today.day <= 7:
+        return today
+    # Move to the next month
+    year = today.year + (today.month // 12)
+    month = (today.month % 12) + 1
+    for day in range(1, 8):
+        date = datetime.date(year, month, day)
+        if date.weekday() == 6:  # Sunday
+            return date
 
 @click.group()
 @click.pass_context
@@ -383,26 +402,6 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
     - P1 tasks get migrated to P0 tasks at the start of next week.\n
     - P2 tasks get migrated to P0 tasks at the start of next month.
     """
-    def get_next_sunday():
-        today = datetime.date.today()
-        if today.weekday() == 6:  # Sunday
-            return today
-        days_ahead = 6 - today.weekday()
-        return today + datetime.timedelta(days=days_ahead)
-
-    def get_first_sunday_next_month():
-        today = datetime.date.today()
-        # If today is the first Sunday of the month, return today
-        if today.weekday() == 6 and today.day <= 7:
-            return today
-        # Move to the next month
-        year = today.year + (today.month // 12)
-        month = (today.month % 12) + 1
-        for day in range(1, 8):
-            date = datetime.date(year, month, day)
-            if date.weekday() == 6:  # Sunday
-                return date
-
     with open(os.path.expanduser(out_file), "a") as logfile:
         tasks = ctx.obj.getTasks(
             end_date, start_date=start_date - datetime.timedelta(days=1)
@@ -465,7 +464,7 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
                 ctx.obj.putTask(
                     task.name.replace("P1","P0").replace("p1","P0"),
                     task.notes,
-                    get_next_sunday()
+                    _get_next_sunday()
                 )
                 ctx.obj.deleteTask(task.id)
         print()
@@ -476,7 +475,7 @@ def grader(ctx: click.Context, start_date, end_date, out_file, dry_run):
                 ctx.obj.putTask(
                     task.name.replace("P2","P0").replace("p2","P0"),
                     task.notes,
-                    get_first_sunday_next_month()
+                    _get_first_sunday_next_month()
                 )
                 ctx.obj.deleteTask(task.id)
         print()
@@ -533,21 +532,31 @@ def clean(ctx: click.Context, start_date, end_date, dry_run):
     Deletion / failure criteria:\n
     - P[0-3]: [T] ... tasks that have not be completed within the appropriate window.
 
-    P0 manually generated tasks will be migrated to the current day.
+    Migration patterns:\n
+    - P0 manually generated tasks will be migrated to the current day.\n
+    - P1 tasks get migrated to P0 tasks at the start of next week.\n
+    - P2 tasks get migrated to P0 tasks at the start of next month.
     """
     tasks = ctx.obj.getTasks(
         end_date, start_date=start_date - datetime.timedelta(days=1)
     )
     failed_tasks = []
     migrate_tasks = []
+    migrate_p1_tasks = []
+    migrate_p2_tasks = []
     for task in tasks:
         if task.timing >= 0:
-            failed = task.autogen and task.days_late > 0
-            if failed:
-                failed_tasks.append((task.days_late, task.id, task.toString(False)))
-            migrate = task.days_late > 0 and not task.autogen and task.timing == 0
-            if migrate:
-                migrate_tasks.append(task)
+            if task.timing == 2: # P2 tasks get migrated to P0 tasks at the start of next month
+                migrate_p2_tasks.append(task)
+            elif task.timing == 1: # P1 tasks get migrated to P0 tasks at the start of next week
+                migrate_p1_tasks.append(task)
+            else: # P0 task grading
+                failed = task.autogen and task.days_late > 0
+                if failed:
+                    failed_tasks.append((task.days_late, task.id, task.toString(False)))
+                migrate = task.days_late > 0 and not task.autogen and task.timing == 0
+                if migrate:
+                    migrate_tasks.append(task)
     if len(migrate_tasks) > 0:
         print("MIGRATABLE TASKS:")
         for task in migrate_tasks:
@@ -559,6 +568,28 @@ def clean(ctx: click.Context, start_date, end_date, dry_run):
                 ctx.obj.deleteTask(migrate_task.id)
     else:
         print("NO TASKS TO MIGRATE")
+    print()
+    if len(migrate_p1_tasks) > 0:
+        print("Migrating p1 -> p0:")
+        for task in migrate_p1_tasks:
+            print(f"- {task.name}")
+            ctx.obj.putTask(
+                task.name.replace("P1","P0").replace("p1","P0"),
+                task.notes,
+                _get_next_sunday()
+            )
+            ctx.obj.deleteTask(task.id)
+    print()
+    if len(migrate_p2_tasks) > 0:
+        print("Migrating P2 -> p0:")
+        for task in migrate_p2_tasks:
+            print(f"- {task.name}")
+            ctx.obj.putTask(
+                task.name.replace("P2","P0").replace("p2","P0"),
+                task.notes,
+                _get_first_sunday_next_month()
+            )
+            ctx.obj.deleteTask(task.id)
     print()
     if len(failed_tasks) > 0:
         sorted_failed_tasks = sorted(failed_tasks, key=lambda k: -k[0])
