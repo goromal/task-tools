@@ -220,9 +220,21 @@ def delete_by_name(ctx: click.Context, name_substr, start_date, end_date):
     show_default=True,
     help="Task due date.",
 )
-def put(ctx: click.Context, name, notes, date):
+@click.option(
+    "--until",
+    "until",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(datetime.date.today()),
+    show_default=True,
+    help="Specify an end date if for multiple days.",
+)
+def put(ctx: click.Context, name, notes, date, until):
     """Upload a task."""
-    ctx.obj.putTask(name, notes, date)
+    current_date = date
+    end_date = until
+    while current_date <= end_date:
+        ctx.obj.putTask(name, notes, current_date)
+        current_date += datetime.timedelta(days=1)
 
 
 @cli.command()
