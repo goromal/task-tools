@@ -231,7 +231,7 @@ def delete_by_name(ctx: click.Context, name_substr, start_date, end_date):
 def put(ctx: click.Context, name, notes, date, until):
     """Upload a task."""
     current_date = date
-    end_date = until
+    end_date = until if until >= date else date
     while current_date <= end_date:
         ctx.obj.putTask(name, notes, current_date)
         current_date += datetime.timedelta(days=1)
