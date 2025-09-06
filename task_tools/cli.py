@@ -26,6 +26,30 @@ def _get_first_sunday_next_month():
         if date.weekday() == 6:  # Sunday
             return date
 
+def _first_day_of_quarter(ref_date, offset_quarters=1):
+    current_quarter = (ref_date.month - 1) // 3
+    target_quarter = current_quarter + offset_quarters
+    target_year = ref_date.year + target_quarter // 4
+    target_quarter = target_quarter % 4
+    first_month = 3 * target_quarter + 1
+    return datetime.date(target_year, first_month, 1)
+
+def _first_sunday_on_or_after(d):
+    days_until_sunday = (6 - d.weekday()) % 7
+    return d + datetime.timedelta(days=days_until_sunday)
+
+def _first_sunday_of_next_quarter(ref_date=None):
+    if ref_date is None:
+        ref_date = datetime.date.today()
+    first_day = _first_day_of_quarter(ref_date, offset_quarters=1)
+    return _first_sunday_on_or_after(first_day)
+
+def _first_sunday_of_quarter_after_next(ref_date=None):
+    if ref_date is None:
+        ref_date = datetime.date.today()
+    first_day = _first_day_of_quarter(ref_date, offset_quarters=2)
+    return _first_sunday_on_or_after(first_day)
+
 @click.group()
 @click.pass_context
 @click.option(
@@ -233,6 +257,7 @@ def put(ctx: click.Context, name, notes, date, until):
     current_date = date
     end_date = until if until >= date else date
     while current_date <= end_date:
+        print(f"{current_date.strftime('%Y-%m-%d')}: {name}")
         ctx.obj.putTask(name, notes, current_date)
         current_date += datetime.timedelta(days=1)
 
@@ -251,7 +276,7 @@ def put(ctx: click.Context, name, notes, date, until):
     "--start-date",
     "start_date",
     type=click.DateTime(formats=["%Y-%m-%d"]),
-    default=str(datetime.date.today()),
+    default=str(_first_sunday_of_next_quarter()),
     show_default=True,
     help="First day of the window.",
 )
@@ -259,7 +284,7 @@ def put(ctx: click.Context, name, notes, date, until):
     "--end-date",
     "end_date",
     type=click.DateTime(formats=["%Y-%m-%d"]),
-    default=str(datetime.date(datetime.datetime.today().year, 12, 31)),
+    default=str(_first_sunday_of_quarter_after_next()),
     show_default=True,
     help="Last day of the window.",
 )
