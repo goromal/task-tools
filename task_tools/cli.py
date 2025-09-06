@@ -257,6 +257,7 @@ def put(ctx: click.Context, name, notes, date, until):
     current_date = date
     end_date = until if until >= date else date
     while current_date <= end_date:
+        print(f"{current_date.strftime('%Y-%m-%d')}: {name}")
         ctx.obj.putTask(name, notes, current_date)
         current_date += datetime.timedelta(days=1)
 
