@@ -6,18 +6,22 @@ import time
 from task_tools.defaults import TaskToolsDefaults as TTD
 from task_tools.manage import TaskManager
 
-def _get_next_sunday():
+def _get_next_sunday(include_today = False):
     today = datetime.date.today()
     if today.weekday() == 6:  # Sunday
-        return today
+        if include_today:
+            return today
+        else:
+            return today + datetime.timedelta(days=7)
     days_ahead = 6 - today.weekday()
     return today + datetime.timedelta(days=days_ahead)
 
-def _get_first_sunday_next_month():
+def _get_first_sunday_next_month(include_today = False):
     today = datetime.date.today()
     # If today is the first Sunday of the month, return today
-    if today.weekday() == 6 and today.day <= 7:
-        return today
+    if include_today:
+        if today.weekday() == 6 and today.day <= 7:
+            return today
     # Move to the next month
     year = today.year + (today.month // 12)
     month = (today.month % 12) + 1
