@@ -42,6 +42,37 @@ def _first_sunday_on_or_after(d):
     days_until_sunday = (6 - d.weekday()) % 7
     return d + datetime.timedelta(days=days_until_sunday)
 
+_DAY_TOKENS = {"sun": 6, "mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5}
+
+
+def parse_interval(token: str) -> tuple[str, int]:
+    """Return (interval_type, weekday) for a CSV interval token.
+
+    weekday is datetime.weekday() int (Mon=0, Sun=6); only meaningful for 'w'.
+    Plain 'w' returns ('w', 6) — Sunday default.
+    """
+    token = token.strip().lower()
+    if ":" in token:
+        itype, day = token.split(":", 1)
+        if itype != "w":
+            raise ValueError(f"Day qualifier ':{day}' is only valid for 'w' intervals, got '{itype}'")
+        if day not in _DAY_TOKENS:
+            raise ValueError(f"Unknown day token '{day}' in interval '{token}'")
+        return itype, _DAY_TOKENS[day]
+    return token, 6
+
+
+def _all_weeks_on_day(start, end, weekday: int):
+    """Return all datetimes in [start, end] that fall on the given weekday (Mon=0, Sun=6)."""
+    result = []
+    current = start
+    while current.weekday() != weekday:
+        current += datetime.timedelta(days=1)
+    while current <= end:
+        result.append(current)
+        current += datetime.timedelta(days=7)
+    return result
+
 def _first_sunday_of_next_quarter(ref_date=None):
     if ref_date is None:
         ref_date = datetime.date.today()
@@ -311,20 +342,11 @@ def put_spec(ctx: click.Context, spec_csv, start_date, end_date, dry_run):
     spec_csv = os.path.expanduser(spec_csv)
 
     daily_task_specs = []
-    all_sundays = []
-    weekly_task_specs = []
+    weekly_specs_by_day = {}
     first_sundays_of_month = []
     monthly_task_specs = []
     first_sundays_of_quarter = []
     quarterly_task_specs = []
-
-    current_date = start_date
-    while current_date.weekday() != 6:
-        current_date += datetime.timedelta(days=1)
-
-    while current_date <= end_date:
-        all_sundays.append(current_date)
-        current_date += datetime.timedelta(days=7)
 
     month = start_date.month
     year = start_date.year
@@ -351,14 +373,17 @@ def put_spec(ctx: click.Context, spec_csv, start_date, end_date, dry_run):
                 rtype = speclist[0]
                 ttitle = speclist[1]
                 tdesc = speclist[2]
-                if rtype.lower() == "d":
+                itype, weekday = parse_interval(rtype)
+                if itype == "d":
                     daily_task_specs.append((ttitle, tdesc))
-                elif rtype.lower() == "w":
-                    weekly_task_specs.append((ttitle, tdesc))
-                elif rtype.lower() == "m":
+                elif itype == "w":
+                    weekly_specs_by_day.setdefault(weekday, []).append((ttitle, tdesc))
+                elif itype == "m":
                     monthly_task_specs.append((ttitle, tdesc))
-                elif rtype.lower() == "q":
+                elif itype == "q":
                     quarterly_task_specs.append((ttitle, tdesc))
+
+    weekly_dates_by_day = {day: set(_all_weeks_on_day(start_date, end_date, day)) for day in weekly_specs_by_day}
 
     current_date = start_date
     while current_date <= end_date:
@@ -372,12 +397,13 @@ def put_spec(ctx: click.Context, spec_csv, start_date, end_date, dry_run):
                 print(f"  {task_title}")
                 if not dry_run:
                     ctx.obj.putTask(task_title, task_description, current_date)
-        if current_date in all_sundays:
-            for task_title, task_description in weekly_task_specs:
-                if task_title not in existing_ttitles:
-                    print(f"  {task_title}")
-                    if not dry_run:
-                        ctx.obj.putTask(task_title, task_description, current_date)
+        for day, specs in weekly_specs_by_day.items():
+            if current_date in weekly_dates_by_day[day]:
+                for task_title, task_description in specs:
+                    if task_title not in existing_ttitles:
+                        print(f"  {task_title}")
+                        if not dry_run:
+                            ctx.obj.putTask(task_title, task_description, current_date)
         if current_date in first_sundays_of_month:
             for task_title, task_description in monthly_task_specs:
                 if task_title not in existing_ttitles:
