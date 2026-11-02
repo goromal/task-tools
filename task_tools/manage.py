@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 from easy_google_auth.auth import (
     CredentialsRefreshException,
-    getGoogleCreds,
     getGoogleService,
     getRateLimitedGoogleService,
 )
@@ -249,18 +248,9 @@ class EventManager(object):
                 )
             except CredentialsRefreshException:
                 raise Exception(
-                    "Calendar credentials missing or expired; run `task-tools event auth` first"
+                    "Calendar credentials missing or expired; refresh the Calendar token in the Auth UI"
                 )
         return self._service
-
-    def authorize(self):
-        getGoogleCreds(
-            self.secrets_file,
-            self.refresh_token,
-            headless=True,
-            force=True,
-            scope=TTD.CALENDAR_SCOPE,
-        )
 
     def getEvents(self, start_date, end_date):
         time_min = f"{start_date.strftime('%Y-%m-%d')}T00:00:00Z"

@@ -841,7 +841,7 @@ def clean(ctx: click.Context, start_date, end_date, dry_run):
     type=click.Path(),
     default=TTD.CALENDAR_REFRESH_TOKEN,
     show_default=True,
-    help="Google Calendar refresh file (separate from the Tasks one; see `event auth`).",
+    help="Google Calendar refresh file (separate from the Tasks one; refreshed via the Auth UI).",
 )
 @click.option(
     "--calendar-id",
@@ -867,18 +867,6 @@ def event(ctx: click.Context, calendar_refresh_token, calendar_id, time_zone):
         calendar_id=calendar_id,
         calendar_time_zone=time_zone,
     )
-
-
-@event.command(name="auth")
-@click.pass_context
-def event_auth(ctx: click.Context):
-    """Authorize Calendar access (one-time; writes the calendar refresh file)."""
-    try:
-        ctx.obj.authorize()
-    except Exception as e:
-        print(f"Program error: {e}")
-        exit(1)
-    print("Calendar access authorized.")
 
 
 _EVENT_TIME_FORMATS = ["%Y-%m-%d", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"]
