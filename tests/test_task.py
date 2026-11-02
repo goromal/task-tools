@@ -141,3 +141,21 @@ class TestCli:
             ("AAA", datetime(2026, 11, 4)),
             ("BBB", datetime(2026, 11, 7)),
         ]
+
+    def test_get_events_uses_local_day_bounds(self):
+        listed = []
+
+        class FakeEvents(object):
+            def list(self, **kwargs):
+                listed.append(kwargs)
+                return _FakeRequest({"items": []})
+
+        class FakeCalendar(object):
+            def events(self):
+                return FakeEvents()
+
+        manager = EventManager(calendar_time_zone="America/Los_Angeles")
+        manager._service = FakeCalendar()
+        manager.getEvents(datetime(2026, 11, 1), datetime(2026, 11, 1))
+        assert listed[0]["timeMin"] == "2026-11-01T00:00:00-07:00"
+        assert listed[0]["timeMax"] == "2026-11-02T00:00:00-08:00"

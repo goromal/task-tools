@@ -1,6 +1,7 @@
 import logging
 import sys
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from easy_google_auth.auth import (
     CredentialsRefreshException,
@@ -253,8 +254,12 @@ class EventManager(object):
         return self._service
 
     def getEvents(self, start_date, end_date):
-        time_min = f"{start_date.strftime('%Y-%m-%d')}T00:00:00Z"
-        time_max = f"{(end_date + timedelta(days=1)).strftime('%Y-%m-%d')}T00:00:00Z"
+        # Day boundaries in the calendar's time zone, not UTC
+        tz = ZoneInfo(self.time_zone)
+        time_min = datetime(start_date.year, start_date.month, start_date.day, tzinfo=tz)
+        time_max = datetime(end_date.year, end_date.month, end_date.day, tzinfo=tz)
+        time_min = time_min.isoformat()
+        time_max = (time_max + timedelta(days=1)).isoformat()
         list_kwargs = {
             "calendarId": self.calendar_id,
             "timeMin": time_min,
